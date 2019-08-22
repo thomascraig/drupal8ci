@@ -1,0 +1,31 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: cibuilds/drupal:latest
+      - image: mariadb:10.2
+        environment:
+          MYSQL_DATABASE: drupal
+          MYSQL_ROOT_PASSWORD: HorriblePassword
+          MYSQL_ROOT_HOST: "%"
+    environment:
+      BLUEMIX_ORG: CircleCI
+      BLUEMIX_SPACE: dev
+    working_directory: /project/app
+    steps:
+      - checkout:
+          path: /project
+      - run:
+          name: "Setup Database & Server"
+          command: |
+            echo "127.0.0.1      db" >> /etc/hosts
+            sleep 20
+            mysql -uroot -pHorriblePassword -h127.0.0.1 drupal < ../db/drupal-db-dump.sql
+            service apache2 start
+      - run:
+          name: "Install Dependencies"
+          command: |
+            composer install
+      - run:
+          name: "Behat Tests"
+          command: vendor/bin/behat
